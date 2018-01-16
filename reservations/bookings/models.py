@@ -55,6 +55,8 @@ class Reservation(models.Model):
         if self._state.adding: return save_super(self)
         # If resource status is PENDING return
         if self.status == ReservationStates.pending: return save_super(self)
+        # If resource status has not changed return
+        if self.status == self.__status_was: return save_super(self)
 
         # Status is not PENDING
         # If the status was PENDING
