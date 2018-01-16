@@ -7,7 +7,8 @@
 ## Throttling
 
 There is a global 1/sec request rate throttle across all resources and actions. This is set lower than it would most
-likely need to be in production, but serves for demonstrative purposes.
+likely need to be in production, but serves for demonstrative purposes. Other resources and/or action combinations may
+have additional throttling constraints, please see each resource and action's description for more details.
 
 ## Resources
 
