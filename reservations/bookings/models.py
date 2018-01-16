@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from enumchoicefield import ChoiceEnum, EnumChoiceField
 
 class NoDeleteQuerySet(models.QuerySet):
     def delete(self):
@@ -24,6 +25,11 @@ class Room(models.Model):
         return NoDeleteQuerySet(self.model, using=self._db)
 
 
+class ReservationStates(ChoiceEnum):
+    pending = 'PENDING'
+    checked_in = 'CHECKED_IN'
+    checked_out = 'CHECKED_OUT'
+
 class Reservation(models.Model):
     class Meta:
         ordering = ('in_date',)
@@ -36,6 +42,7 @@ class Reservation(models.Model):
     out_date = models.DateField()
     checkin_datetime = models.DateTimeField(null=True)
     checkout_datetime = models.DateTimeField(null=True)
+    status = EnumChoiceField(enum_class=ReservationStates, default=ReservationStates.pending)
     # Deletion of Rooms is not currently supported.
     # TODO: Test
     room = models.ForeignKey(Room, on_delete=models.PROTECT)
