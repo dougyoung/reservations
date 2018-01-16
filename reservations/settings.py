@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework',
     'rest_framework.authtoken',
-    'reservations.bookings.apps.ReservationsConfig'
+    'reservations.api.apps.ReservationsConfig'
 ]
 
 MIDDLEWARE = [

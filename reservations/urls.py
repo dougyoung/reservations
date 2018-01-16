@@ -1,6 +1,6 @@
 from django.conf.urls import url, include
 from rest_framework import routers
-from reservations.bookings import views
+from reservations.api import views
 
 router = routers.DefaultRouter()
 router.register(r'reservations', views.ReservationViewSet)

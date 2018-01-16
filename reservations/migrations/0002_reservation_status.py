@@ -2,7 +2,7 @@
 
 from django.db import migrations
 import enumchoicefield.fields
-import reservations.bookings.models
+import reservations.api.models
 
 
 class Migration(migrations.Migration):
@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='reservation',
             name='status',
-            field=enumchoicefield.fields.EnumChoiceField(default=reservations.bookings.models.ReservationStates(1), enum_class=reservations.bookings.models.ReservationStates, max_length=11),
+            field=enumchoicefield.fields.EnumChoiceField(default=reservations.api.models.ReservationStates(1), enum_class=reservations.api.models.ReservationStates, max_length=11),
         ),
     ]

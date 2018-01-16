@@ -1,6 +1,6 @@
 from enumchoicefield import EnumChoiceField
 from rest_framework import serializers
-from reservations.bookings.models import Reservation, ReservationStates, Room
+from reservations.api.models import Reservation, ReservationStates, Room
 
 
 class RoomSerializer(serializers.HyperlinkedModelSerializer):
