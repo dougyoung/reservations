@@ -1,6 +1,6 @@
 from enumchoicefield import EnumChoiceField
 from rest_framework import serializers
-from reservations.api.models import Reservation, ReservationStates, Room
+from reservations.api.models import Reservation, ReservationState, Room
 
 
 class RoomSerializer(serializers.HyperlinkedModelSerializer):
@@ -13,7 +13,7 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.UUIDField(read_only=True)
     in_date = serializers.DateField(required=True)
     out_date = serializers.DateField(required=True)
-    status = EnumChoiceField(enum_class=ReservationStates)
+    status = EnumChoiceField(enum_class=ReservationState)
     checkin_datetime = serializers.DateTimeField(required=False)
     checkout_datetime = serializers.DateTimeField(required=False)
     room = serializers.PrimaryKeyRelatedField(

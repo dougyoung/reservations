@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='reservation',
             name='status',
-            field=enumchoicefield.fields.EnumChoiceField(default=reservations.api.models.ReservationStates(1), enum_class=reservations.api.models.ReservationStates, max_length=11),
+            field=enumchoicefield.fields.EnumChoiceField(default=reservations.api.models.ReservationState(1), enum_class=reservations.api.models.ReservationState, max_length=11),
         ),
     ]

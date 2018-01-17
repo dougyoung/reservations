@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 
+
 class NoDeleteQuerySet(models.QuerySet):
     def delete(self):
         raise NotImplementedError("Deletion of Rooms is not currently supported")
@@ -16,6 +17,7 @@ class Room(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
     number = models.IntegerField(null=False)
 
     def delete(self):
@@ -27,7 +29,7 @@ class Room(models.Model):
         return NoDeleteQuerySet(self.model, using=self._db)
 
 
-class ReservationStates(ChoiceEnum):
+class ReservationState(ChoiceEnum):
     pending = 'PENDING'
     checked_in = 'CHECKED_IN'
     checked_out = 'CHECKED_OUT'
@@ -54,27 +56,27 @@ class Reservation(models.Model):
         # If resource is not yet created status will always be PENDING
         if self._state.adding: return save_super(self)
         # If resource status is PENDING return
-        if self.status == ReservationStates.pending: return save_super(self)
+        if self.status == ReservationState.pending: return save_super(self)
         # If resource status has not changed return
         if self.status == self.__status_was: return save_super(self)
 
         # Status is not PENDING
         # If the status was PENDING
-        if self.__status_was == ReservationStates.pending:
+        if self.__status_was == ReservationState.pending:
             # Then the new status should be CHECKED_IN
-            if self.status == ReservationStates.checked_in:
+            if self.status == ReservationState.checked_in:
                 self.checkin_datetime = timezone.now()
             else:
                 transition_error(self)
-        elif self.__status_was == ReservationStates.checked_in:
+        elif self.__status_was == ReservationState.checked_in:
             # Then the new status should be CHECKED_OUT
-            if self.status == ReservationStates.checked_out:
+            if self.status == ReservationState.checked_out:
                 self.checkout_datetime = timezone.now()
             else:
                 transition_error(self)
-        elif self.__status_was == ReservationStates.checked_out:
+        elif self.__status_was == ReservationState.checked_out:
             # Then the new status should be CHECKED_OUT
-            if self.status == ReservationStates.checked_out:
+            if self.status == ReservationState.checked_out:
                 pass
             else:
                 transition_error(self)
@@ -87,13 +89,14 @@ class Reservation(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255, null=True)  # https://en.wikipedia.org/wiki/Mononymous_person
     in_date = models.DateField()
     out_date = models.DateField()
     checkin_datetime = models.DateTimeField(null=True)
     checkout_datetime = models.DateTimeField(null=True)
-    status = EnumChoiceField(enum_class=ReservationStates, default=ReservationStates.pending)
+    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending)
     # Deletion of Rooms is not currently supported.
     # TODO: Test
     room = models.ForeignKey(Room, on_delete=models.PROTECT)
