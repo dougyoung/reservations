@@ -1,7 +1,31 @@
 # Simple Reservation Service
 
+This is a simple Reservation application to provide service around Reservations for hotels and other establishments that
+allow booking of rooms.
+
+## Requirements
+
+To run locally you will require Python 3. This has been tested with Python 3.6.2.
+
+## Run locally
+
+First, pull repository from Github:
+
 ```bash
+# git clone git@github.com:dougyoung/reservations.git
+```
+
+Second, activate your virtualenv:
+
+```bash
+# cd reservations
 # source env/bin/activate
+```
+
+Third install pip dependencies:
+
+```bash
+# pip3 install -r requirements.txt
 ```
 
 ## Throttling
@@ -11,6 +35,20 @@ likely need to be in production, but serves for demonstrative purposes. Other re
 have additional throttling constraints, please see each resource and action's description for more details.
 
 ## Resources
+
+### Guests
+
+`GET /guests`
+
+`GET /guests/<id>`
+
+`POST /guests`
+
+`PUT /guests/<id>`
+
+`PATCH /guest/<id>`
+
+`DELETE /guest/<id>`
 
 ### Reservations
 
@@ -22,12 +60,12 @@ have additional throttling constraints, please see each resource and action's de
 
 `PUT /reservations<id>`
 
-This resource and action combination has a specific throttling policy wherein any PUT containing `status` will be subject
+A PUT request to a Reservation has a specific throttling policy wherein any PUT containing `status` will be subject
 to a throttling rate of 1/minute.
 
 `PATCH /reservations/<id>`
 
-This resource and action combination has a specific throttling policy wherein any PUT containing `status` will be subject
+A PATCH request to a Reservation has a specific throttling policy wherein any PATCH containing `status` will be subject
 to a throttling rate of 1/minute.
 
 `DELETE /reservations/<id>`
