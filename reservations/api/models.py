@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from enumchoicefield import ChoiceEnum, EnumChoiceField
+from model_utils import FieldTracker
 
 
 class NoDeleteQuerySet(models.QuerySet):
@@ -55,42 +56,59 @@ class Reservation(models.Model):
     class Meta:
         ordering = ('in_date',)
 
-    def __init__(self, *args, **kwargs):
-        super(Reservation, self).__init__(*args, **kwargs)
-        self.__status_was = self.status
+    ##############
+    # Attributes #
+    ##############
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    in_date = models.DateField(editable=False)
+    out_date = models.DateField(editable=False)
+    checkin_datetime = models.DateTimeField(null=True)
+    checkout_datetime = models.DateTimeField(null=True)
+    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending)
+    # Deletion of Guests is not currently supported.
+    guest = models.ForeignKey(Guest, on_delete=models.PROTECT)
+    # Deletion of Rooms is not currently supported.
+    room = models.ForeignKey(Room, on_delete=models.PROTECT)
+    # Tracker to keep track of status changes
+    tracker = FieldTracker()
 
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
-        def save_super(instance):
-            super(Reservation, instance).save(force_insert, force_update, *args, **kwargs)
+        self._set_check_in_check_out_time()
 
+        # Save the resource
+        return super(Reservation, self).save(force_insert, force_update, *args, **kwargs)
+
+    def _set_check_in_check_out_time(self):
         def transition_error(instance):
             raise ValidationError("Reservation cannot transition from {} to {}".format(
-                instance.__status_was,
+                instance.tracker.previous('status'),
                 instance.status
             ))
 
         # If resource is not yet created status will always be PENDING
-        if self._state.adding: return save_super(self)
-        # If resource status is PENDING return
-        if self.status == ReservationState.pending: return save_super(self)
+        if self._state.adding: return
         # If resource status has not changed return
-        if self.status == self.__status_was: return save_super(self)
+        if not self.tracker.has_changed('status'): return
 
         # Status is not PENDING
         # If the status was PENDING
-        if self.__status_was == ReservationState.pending:
+        if self.tracker.previous('status') == ReservationState.pending:
             # Then the new status should be CHECKED_IN
             if self.status == ReservationState.checked_in:
                 self.checkin_datetime = timezone.now()
             else:
                 transition_error(self)
-        elif self.__status_was == ReservationState.checked_in:
+        # If the status was CHECKED_IN
+        elif self.tracker.previous('status') == ReservationState.checked_in:
             # Then the new status should be CHECKED_OUT
             if self.status == ReservationState.checked_out:
                 self.checkout_datetime = timezone.now()
             else:
                 transition_error(self)
-        elif self.__status_was == ReservationState.checked_out:
+        # If the status was CHECKED_OUT
+        elif self.tracker.previous('status') == ReservationState.checked_out:
             # Then the new status should be CHECKED_OUT
             if self.status == ReservationState.checked_out:
                 pass
@@ -99,20 +117,3 @@ class Reservation(models.Model):
         else:
             # Unknown state
             transition_error(self)
-
-        # Finally, save the resource
-        return save_super(self)
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255, null=True)  # https://en.wikipedia.org/wiki/Mononymous_person
-    in_date = models.DateField()
-    out_date = models.DateField()
-    checkin_datetime = models.DateTimeField(null=True)
-    checkout_datetime = models.DateTimeField(null=True)
-    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending)
-    # Deletion of Rooms is not currently supported.
-    # TODO: Test
-    room = models.ForeignKey(Room, on_delete=models.PROTECT)
