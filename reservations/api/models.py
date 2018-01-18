@@ -1,6 +1,6 @@
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from enumchoicefield import ChoiceEnum, EnumChoiceField
@@ -16,8 +16,8 @@ class IndestructableModel(models.Model):
             raise NotImplementedError("Deletion of Rooms is not currently supported")
 
     def delete(self):
-        # Deletion of Guests is not currently supported
-        raise NotImplementedError("Deletion of Guests is not currently supported")
+        # Deletion of this resource is not currently supported
+        raise NotImplementedError("Deletion of {} is not currently supported".format(self.__class__))
 
     def get_queryset(self):
         # Deletion of Rooms is not currently supported
@@ -81,8 +81,10 @@ class Reservation(IndestructableModel):
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
         self._set_check_in_check_out_time()
 
-        # Save the resource
-        return super(Reservation, self).save(force_insert, force_update, *args, **kwargs)
+        # Save the resource with transactional atomicity.
+        with transaction.atomic():
+            # Here we would also update Room availability for a given Hotel.
+            return super(Reservation, self).save(force_insert, force_update, *args, **kwargs)
 
     def _set_check_in_check_out_time(self):
         def transition_error(instance):

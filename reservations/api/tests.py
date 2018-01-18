@@ -134,10 +134,10 @@ class ReservationTestCase(TestCase):
 # TODO: Use reverse
 class ReservationStatusThrottlingTestCase(TestCase):
     """
-        Test that Reservation requests involving status updates trigger the special 1/min throttle.
-        While non-completely-determinstic tests should generally be avoided
-        the 1/min rate should almost certainly be hit within two lines of code.
-        If the 1/min rate is lowered this test may become too in-deterministic to be viable.
+    Test that Reservation requests involving status updates trigger the special 1/min throttle.
+    While non-completely-determinstic tests should generally be avoided
+    the 1/min rate should almost certainly be hit within two lines of code.
+    If the 1/min rate is lowered this test may become too in-deterministic to be viable.
     """
 
     # We only want to test the Reservation Status throttle
