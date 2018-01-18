@@ -132,7 +132,7 @@ class Reservation(IndestructableModel):
 # Signal receiver for Reservation save to concurrently refresh CurrentAndUpcomingReseravtionat materialized view.
 @receiver(signals.post_save, sender=Reservation)
 def reservation_saved(sender, action=None, instance=None, **kwargs):
-    CurrentAndUpcomingReservation.refresh()
+    CurrentAndUpcomingReservation.refresh(concurrently=True)
 
 
 # Select relevant Reservation information including Guest first name and last name as well as Room number.
