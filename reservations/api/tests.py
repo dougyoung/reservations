@@ -123,3 +123,66 @@ class ReservationTestCase(TestCase):
         reservation.status = ReservationState.checked_in
         with self.assertRaises(ValidationError):
             reservation.save()
+
+#####################
+# Integration tests #
+#####################
+
+
+# TODO: Use reverse
+class ReservationStatusThrottlingTestCase(TestCase):
+    """
+        Test that Reservation requests involving status updates trigger the special 1/min throttle.
+        While non-completely-determinstic tests should generally be avoided
+        the 1/min rate should almost certainly be hit within two lines of code.
+        If the 1/min rate is lowered this test may become too in-deterministic to be viable.
+    """
+
+    # We only want to test the Reservation Status throttle
+    ReservationViewSet.throttle_classes = (ReservationStatusRateThrottle,)
+
+    def setUp(self):
+        Guest.objects.create(first_name='Napoleon')
+        Room.objects.create(number='ABC101')
+        Room.objects.create(number='ABC102')
+
+    def test_reservation_not_throttled_when_status_not_included(self):
+        client = APIClient()
+        reservation = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
+
+        # When a request does not involve the status it is not throttled by the Reservation Status throttle
+        for i in range(2):
+            response = client.patch('/reservations/{}'.format(reservation.pk), {'out_date': '2018-01-02'}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_reservation_throttled_when_status_included(self):
+        client = APIClient()
+        reservation = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
+
+        # When a request does involve the status it is throttled with the Reservation Status policy
+        request = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
+        self.assertEqual(request.status_code, status.HTTP_200_OK)
+        request = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
+        self.assertEqual(request.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_reservation_throttled_only_for_reservation_that_triggered_it(self):
+        client = APIClient()
+        reservation_one = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
+        reservation_two = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.all()[1])
+
+        # Ensure Reservations are different
+        self.assertNotEqual(reservation_one.pk, reservation_two.pk)
+
+        # Trigger a Reservation Status throttle for Reservation one
+        request = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        self.assertEqual(request.status_code, status.HTTP_200_OK)
+        request = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        self.assertEqual(request.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Request for Reservation two is unaffected
+        request = client.patch('/reservations/{}'.format(reservation_two.pk), {'status': 'pending'})
+        self.assertEqual(request.status_code, status.HTTP_200_OK)
+
+        # Request for Reservation one is still under throttling timeout
+        request = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        self.assertEqual(request.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
