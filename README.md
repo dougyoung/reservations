@@ -9,23 +9,30 @@ To run locally you will require Python 3. This has been tested with Python 3.6.2
 
 ## Run locally
 
-First, pull repository from Github:
+Pull repository from Github:
 
 ```bash
 # git clone git@github.com:dougyoung/reservations.git
 ```
 
-Second, activate your virtualenv:
+Activate your virtualenv:
 
 ```bash
 # cd reservations
 # source env/bin/activate
 ```
 
-Third install pip dependencies:
+Install pip dependencies:
 
 ```bash
 # pip3 install -r requirements.txt
+```
+
+_Simple Reservation Service_ utilizes materialized views to denormalize Reservation, Guest, and Room data into a single
+cached table. In order to generate these views please run:
+
+```bash
+# python3 manage.py sync_pgviews
 ```
 
 ## Throttling

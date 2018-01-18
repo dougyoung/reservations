@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'django_pgviews',
     'rest_framework',
     'rest_framework.authtoken',
     'reservations.api.apps.ReservationsConfig'

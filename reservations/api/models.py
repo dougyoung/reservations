@@ -1,12 +1,16 @@
 import uuid
 
-from django.db import models, transaction
 from django.core.exceptions import ValidationError
+from django.db import models, transaction
+from django.db.models import signals
+from django.dispatch import receiver
 from django.utils import timezone
+from django_pgviews import view as pg
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 from model_utils import FieldTracker
 
 
+# TODO: Move to utils
 class IndestructableModel(models.Model):
     class Meta:
         abstract = True
@@ -70,7 +74,7 @@ class Reservation(IndestructableModel):
     out_date = models.DateField(editable=False)
     checkin_datetime = models.DateTimeField(null=True)
     checkout_datetime = models.DateTimeField(null=True)
-    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending)
+    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending, null=False)
     # Deletion of Guests is not currently supported.
     guest = models.ForeignKey(Guest, on_delete=models.PROTECT)
     # Deletion of Rooms is not currently supported.
@@ -123,3 +127,52 @@ class Reservation(IndestructableModel):
         else:
             # Unknown state
             transition_error(self)
+
+
+# Signal receiver for Reservation save to concurrently refresh CurrentAndUpcomingReseravtionat materialized view.
+@receiver(signals.post_save, sender=Reservation)
+def reservation_saved(sender, action=None, instance=None, **kwargs):
+    CurrentAndUpcomingReservation.refresh()
+
+
+# Select relevant Reservation information including Guest first name and last name as well as Room number.
+# Where the arrival date is less than 3 days in the future,
+# or the departure date is less than 3 days in the future.
+# If we were modelling Hotels currently we would parameterize this by Hotel ID.
+# This is used for the CurrentAndUpcomingReservation materialized view, which acts as a
+# denormalized cache for current and upcoming Reservations.
+CURRENT_AND_UPCOMING_RESERVATIONS_SQL = """
+  SELECT r.id, first_name, last_name, in_date, out_date, number, checkin_datetime, checkout_datetime, status
+  FROM reservations_reservation as r
+  INNER JOIN reservations_guest ON r.guest_id = reservations_guest.id 
+  INNER JOIN reservations_room ON r.room_id = reservations_room.id
+  WHERE age(in_date, current_date) < '3 days'
+    OR age(out_date, current_date) < '3 days'
+  ORDER BY in_date;
+"""
+
+
+# A materialized view to cache current and upcoming Reservations.
+# This materialized view is not managed by Django. In order to create it run:
+# $ python3 manage.py sync_pgviews
+class CurrentAndUpcomingReservation(pg.ReadOnlyMaterializedView):
+    class Meta:
+        managed = False
+
+    # Must declare a unique key which can be used against for concurrent refreshes.
+    concurrent_index = 'id'
+
+    ##############
+    # Attributes #
+    ##############
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    first_name = models.CharField(max_length=255, null=False)
+    last_name = models.CharField(max_length=255)
+    in_date = models.DateField(editable=False, null=False)
+    out_date = models.DateField(editable=False, null=False)
+    number = models.CharField(max_length=255, null=False)
+    checkin_datetime = models.DateTimeField(null=True)
+    checkout_datetime = models.DateTimeField(null=True)
+    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending, null=False)
+
+    sql = CURRENT_AND_UPCOMING_RESERVATIONS_SQL

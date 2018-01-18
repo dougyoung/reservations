@@ -5,6 +5,8 @@ from reservations.api import views
 router = routers.DefaultRouter()
 router.register(r'guests', views.GuestViewSet)
 router.register(r'reservations', views.ReservationViewSet)
+# TODO: Change url to /reservations/current_and_upcoming
+router.register(r'current_and_upcoming', views.CurrentAndUpcomingReservationViewSet)
 router.register(r'rooms', views.RoomViewSet)
 
 # Setup a router that does not require trailing slash
