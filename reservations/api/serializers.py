@@ -6,13 +6,13 @@ from reservations.api.models import Guest, Reservation, ReservationState, Room
 class GuestSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Guest
-        fields = ('id', 'first_name', 'last_name',)
+        fields = ('url', 'first_name', 'last_name',)
 
 
 class RoomSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Room
-        fields = ('id', 'number',)
+        fields = ('url', 'number',)
 
 
 class ReservationSerializer(serializers.HyperlinkedModelSerializer):
@@ -35,7 +35,7 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Reservation
-        fields = ('id', 'in_date', 'out_date', 'status', 'checkin_datetime', 'checkout_datetime', 'guest', 'room')
+        fields = ('url', 'in_date', 'out_date', 'status', 'checkin_datetime', 'checkout_datetime', 'guest', 'room')
 
     def create(self, validated_data):
         """
