@@ -7,12 +7,24 @@ from enumchoicefield import ChoiceEnum, EnumChoiceField
 from model_utils import FieldTracker
 
 
-class NoDeleteQuerySet(models.QuerySet):
+class IndestructableModel(models.Model):
+    class Meta:
+        abstract = True
+
+    class NoDeleteQuerySet(models.QuerySet):
+        def delete(self):
+            raise NotImplementedError("Deletion of Rooms is not currently supported")
+
     def delete(self):
-        raise NotImplementedError("Deletion of Rooms is not currently supported")
+        # Deletion of Guests is not currently supported
+        raise NotImplementedError("Deletion of Guests is not currently supported")
+
+    def get_queryset(self):
+        # Deletion of Rooms is not currently supported
+        return self.__class__.NoDeleteQuerySet(self.model, using=self._db)
 
 
-class Guest(models.Model):
+class Guest(IndestructableModel):
     class Meta:
         ordering = ('last_name', 'first_name')
 
@@ -25,7 +37,7 @@ class Guest(models.Model):
     last_name = models.CharField(max_length=255, null=True)  # https://en.wikipedia.org/wiki/Mononymous_person
 
 
-class Room(models.Model):
+class Room(IndestructableModel):
     class Meta:
         ordering = ('number',)
 
@@ -37,14 +49,6 @@ class Room(models.Model):
     updated = models.DateTimeField(auto_now=True)
     number = models.CharField(max_length=255, null=False)  # A room "number" may contain alphanumerics
 
-    def delete(self):
-        # Deletion of Rooms is not currently supported
-        raise NotImplementedError("Deletion of Rooms is not currently supported")
-
-    def get_queryset(self):
-        # Deletion of Rooms is not currently supported
-        return NoDeleteQuerySet(self.model, using=self._db)
-
 
 class ReservationState(ChoiceEnum):
     pending = 'PENDING'
@@ -52,7 +56,7 @@ class ReservationState(ChoiceEnum):
     checked_out = 'CHECKED_OUT'
 
 
-class Reservation(models.Model):
+class Reservation(IndestructableModel):
     class Meta:
         ordering = ('in_date',)
 

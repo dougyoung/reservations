@@ -29,11 +29,12 @@ class GuestTestCase(TestCase):
         guest = Guest.objects.filter(first_name='John', last_name='Smith').first()
         self.assertIsNotNone(guest)
 
-    def test_delete(self):
-        guest = Guest.objects.create(first_name='John', last_name='Smith')
-        guest.delete()
-        guest = Guest.objects.filter(first_name='John', last_name='Smith').first()
-        self.assertIsNone(guest)
+    def test_delete_not_supported(self):
+        guest = Guest.objects.create(first_name='Socrates')
+        with self.assertRaises(NotImplementedError):
+            guest.delete()
+        guest = Guest.objects.filter(first_name='Socrates').first()
+        self.assertIsNotNone(guest)
 
     def test_last_name_not_required(self):
         Guest.objects.create(first_name='Cher')
@@ -87,9 +88,10 @@ class ReservationTestCase(TestCase):
 
     def test_delete(self):
         reservation = Reservation.objects.create(in_date='2018-01-01',  out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
-        reservation.delete()
+        with self.assertRaises(NotImplementedError):
+            reservation.delete()
         reservation = Reservation.objects.filter(in_date='2018-01-01',  out_date='2018-01-02').first()
-        self.assertIsNone(reservation)
+        self.assertIsNotNone(reservation)
 
     def test_state_changes(self):
         reservation = Reservation.objects.create(in_date='2018-01-01',  out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())

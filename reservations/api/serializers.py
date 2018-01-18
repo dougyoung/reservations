@@ -55,7 +55,7 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
         instance.in_date = validated_data.get('in_date', instance.in_date)
         instance.out_date = validated_data.get('out_date', instance.out_date)
         instance.status = validated_data.get('status', instance.status)
-        instance.room = validated_data.get('guest', instance.room)
+        instance.guest = validated_data.get('guest', instance.guest)
         instance.room = validated_data.get('room', instance.room)
         instance.save()
         return instance
