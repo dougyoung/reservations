@@ -3,6 +3,7 @@ from rest_framework import routers
 from reservations.api import views
 
 router = routers.DefaultRouter()
+router.register(r'guests', views.GuestViewSet)
 router.register(r'reservations', views.ReservationViewSet)
 router.register(r'rooms', views.RoomViewSet)
 

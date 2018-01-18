@@ -11,14 +11,30 @@ class NoDeleteQuerySet(models.QuerySet):
         raise NotImplementedError("Deletion of Rooms is not currently supported")
 
 
+class Guest(models.Model):
+    class Meta:
+        ordering = ('last_name', 'first_name')
+
+    ##############
+    # Attributes #
+    ##############
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255, null=True)  # https://en.wikipedia.org/wiki/Mononymous_person
+
+
 class Room(models.Model):
     class Meta:
         ordering = ('number',)
 
+    ##############
+    # Attributes #
+    ##############
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    number = models.IntegerField(null=False)
+    number = models.CharField(max_length=255, null=False)  # A room "number" may contain alphanumerics
 
     def delete(self):
         # Deletion of Rooms is not currently supported

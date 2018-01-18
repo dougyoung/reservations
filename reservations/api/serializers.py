@@ -1,6 +1,12 @@
 from enumchoicefield import EnumChoiceField
 from rest_framework import serializers
-from reservations.api.models import Reservation, ReservationState, Room
+from reservations.api.models import Guest, Reservation, ReservationState, Room
+
+
+class GuestSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Guest
+        fields = ('id', 'first_name', 'last_name',)
 
 
 class RoomSerializer(serializers.HyperlinkedModelSerializer):
@@ -16,6 +22,11 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
     status = EnumChoiceField(enum_class=ReservationState)
     checkin_datetime = serializers.DateTimeField(required=False)
     checkout_datetime = serializers.DateTimeField(required=False)
+    guest = serializers.PrimaryKeyRelatedField(
+        queryset=Guest.objects.all(),
+        required=True,
+        write_only=False
+    )
     room = serializers.PrimaryKeyRelatedField(
         queryset=Room.objects.all(),  # TODO: Is this really going to query all Rooms?
         required=True,
@@ -24,7 +35,7 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Reservation
-        fields = ('id', 'in_date', 'out_date', 'status', 'checkin_datetime', 'checkout_datetime', 'room')
+        fields = ('id', 'in_date', 'out_date', 'status', 'checkin_datetime', 'checkout_datetime', 'guest', 'room')
 
     def create(self, validated_data):
         """
@@ -44,6 +55,7 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
         instance.in_date = validated_data.get('in_date', instance.in_date)
         instance.out_date = validated_data.get('out_date', instance.out_date)
         instance.status = validated_data.get('status', instance.status)
+        instance.room = validated_data.get('guest', instance.room)
         instance.room = validated_data.get('room', instance.room)
         instance.save()
         return instance
