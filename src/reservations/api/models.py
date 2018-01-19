@@ -35,7 +35,7 @@ class Room(IndestructableModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    number = models.CharField(max_length=255, null=False)  # A room "number" may contain alphanumerics
+    number = models.CharField(max_length=255, null=False, unique=True)  # A room "number" may contain alphanumerics
 
 
 class ReservationState(ChoiceEnum):

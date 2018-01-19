@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -65,6 +66,11 @@ class RoomTestCase(TestCase):
             room.delete()
         room = Room.objects.filter(number='ABC101').first()
         self.assertIsNotNone(room)
+
+    def test_number_unique(self):
+        Room.objects.create(number='ABC101')
+        with self.assertRaises(IntegrityError):
+            Room.objects.create(number='ABC101')
 
 
 # Reservation model tests
@@ -230,19 +236,18 @@ class GuestIntegrationTest(TestCase):
         guest = Guest.objects.create(first_name='Prince')
         self.assertIs(Guest.objects.count(), 1)
 
-        guest_fetched = client.get(reverse('guest-detail', args=[guest.pk]))
+        response = client.get(reverse('guest-detail', args=[guest.pk]))
 
-        self.assertIsNotNone(guest_fetched)
-        self.assertEquals(str(Guest.objects.first().pk), guest_fetched.data['id'])
+        self.assertEquals(str(Guest.objects.first().pk), response.data['id'])
 
     def test_create_guest(self):
         client = APIClient()
 
         self.assertIs(Guest.objects.count(), 0)
-        guest = client.post(reverse('guest-list'), {'first_name': 'Homer'})
+        response = client.post(reverse('guest-list'), {'first_name': 'Homer'})
         self.assertIs(Guest.objects.count(), 1)
 
-        self.assertEquals(str(Guest.objects.first().pk), guest.data['id'])
+        self.assertEquals(str(Guest.objects.first().pk), response.data['id'])
 
     def test_update_guest(self):
         client = APIClient()
@@ -272,19 +277,18 @@ class RoomIntegrationTest(TestCase):
         room = Room.objects.create(number='ABC101')
         self.assertIs(Room.objects.count(), 1)
 
-        room_fetched = client.get(reverse('room-detail', args=[room.pk]))
+        response = client.get(reverse('room-detail', args=[room.pk]))
 
-        self.assertIsNotNone(room_fetched)
-        self.assertEquals(str(Room.objects.first().pk), room_fetched.data['id'])
+        self.assertEquals(str(Room.objects.first().pk), response.data['id'])
 
     def test_create_guest(self):
         client = APIClient()
 
         self.assertIs(Room.objects.count(), 0)
-        room = client.post(reverse('room-list'), {'number': 'ABC101'})
+        response = client.post(reverse('room-list'), {'number': 'ABC101'})
         self.assertIs(Room.objects.count(), 1)
 
-        self.assertEquals(str(Room.objects.first().pk), room.data['id'])
+        self.assertEquals(str(Room.objects.first().pk), response.data['id'])
 
     def test_update_guest(self):
         client = APIClient()
@@ -297,6 +301,16 @@ class RoomIntegrationTest(TestCase):
         room.refresh_from_db()
 
         self.assertEquals(room.number, 'DEF101')
+
+    def test_number_unique(self):
+        client = APIClient()
+
+        self.assertIs(Room.objects.count(), 0)
+        Room.objects.create(number='ABC101')
+        self.assertIs(Room.objects.count(), 1)
+
+        response = client.post(reverse('room-list'), {'number': 'ABC101'})
+        self.assertEquals(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class ReservationIntegrationTest(TestCase):

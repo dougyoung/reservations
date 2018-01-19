@@ -1,8 +1,7 @@
 # Simple Reservation Service
 
 This is a simple Reservation application to provide service around Reservations for hotels and other establishments that
-allow booking of rooms. This repository represents a first iteration of such a service, as many more considerations
-need to be made to bring it to production-readiness.
+allow booking of rooms.
 
 ## Running
 
@@ -156,7 +155,7 @@ to a throttling rate of 1/minute.
 
 Each Room action takes or responsds with the following JSON attributes:
 
-`number`: A String representing the colloquial Room identifier.
+`number`: A String representing the colloquial Room identifier. Must be unique.
 
 `GET /rooms`
 
@@ -183,7 +182,9 @@ docker-compose run api python3 manage.py test
 
 ## Next steps
 
-There are many more things I would like to do to improve this service further. They are, in no particular order:
+This repository represents a first iteration of such a service, and as such there are many more things I would like to 
+do to improve it and expand upon it and prepare it for production readiness. These features are, in no particular 
+order:
 
 1. Better authentication for clients
     1. Perhaps token-based authentication.
