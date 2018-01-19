@@ -17,22 +17,13 @@ class RoomSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class ReservationSerializer(serializers.HyperlinkedModelSerializer):
-    # TODO: Need all of this?
     in_date = serializers.DateField(required=True)
     out_date = serializers.DateField(required=True)
     status = EnumChoiceField(enum_class=ReservationState)
     checkin_datetime = serializers.DateTimeField(required=False)
     checkout_datetime = serializers.DateTimeField(required=False)
-    guest = serializers.PrimaryKeyRelatedField(
-        queryset=Guest.objects.all(),
-        required=True,
-        write_only=False
-    )
-    room = serializers.PrimaryKeyRelatedField(
-        queryset=Room.objects.all(),  # TODO: Is this really going to query all Rooms?
-        required=True,
-        write_only=False
-    )
+    guest = serializers.PrimaryKeyRelatedField(queryset=Guest.objects.all(), required=True)
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all(), required=True)
 
     class Meta:
         model = Reservation
@@ -58,12 +49,21 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
 
         return instance
 
+    def validate(self, data):
+        """
+        Check that the arrival date is on or before the departure date
+        """
+        if not 'in_date' in data or not 'out_date' in data: return data
+        if data['in_date'] > data['out_date']:
+            raise serializers.ValidationError("Arrival date must be before departure date")
+        return data
+
 
 class CurrentAndUpcomingReservationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = CurrentAndUpcomingReservation
         fields = (
-            'id', 'url',
+            'url',
             'first_name', 'last_name',
             'in_date', 'out_date', 'room_number',
             'checkin_datetime', 'checkout_datetime', 'status'

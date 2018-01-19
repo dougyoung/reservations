@@ -352,6 +352,17 @@ class ReservationIntegrationTest(TestCase):
 
         self.assertEquals(reservation.out_date, datetime(year=2018, month=1, day=3).date())
 
+    def test_in_date_before_out_date(self):
+        client = APIClient()
+
+        self.assertIs(Reservation.objects.count(), 0)
+        reservation = client.post(reverse('reservation-list'), {
+            'in_date': '2018-01-02', 'out_date': '2018-01-01',
+            'guest': Guest.objects.first().pk, 'room': Room.objects.first().pk
+        })
+        self.assertEqual(reservation.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIs(Reservation.objects.count(), 0)
+
 
 class ReservationStatusThrottlingTestCase(TestCase):
     """
