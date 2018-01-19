@@ -2,13 +2,12 @@ from datetime import datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from reservations.api.models import CurrentAndUpcomingReservation, Guest, Room, Reservation, ReservationState
 from reservations.api.utils.throttles import ReservationStatusRateThrottle
 from reservations.api.views import GuestViewSet, ReservationViewSet, RoomViewSet
-
-# TODO: Use reverse
 
 ###############
 # Model tests #
@@ -231,7 +230,7 @@ class GuestIntegrationTest(TestCase):
         guest = Guest.objects.create(first_name='Prince')
         self.assertIs(Guest.objects.count(), 1)
 
-        guest_fetched = client.get('/guests/{}'.format(guest.pk))
+        guest_fetched = client.get(reverse('guest-detail', args=[guest.pk]))
 
         self.assertIsNotNone(guest_fetched)
         self.assertEquals(str(Guest.objects.first().pk), guest_fetched.data['id'])
@@ -240,7 +239,7 @@ class GuestIntegrationTest(TestCase):
         client = APIClient()
 
         self.assertIs(Guest.objects.count(), 0)
-        guest = client.post('/guests', {'first_name': 'Homer'})
+        guest = client.post(reverse('guest-list'), {'first_name': 'Homer'})
         self.assertIs(Guest.objects.count(), 1)
 
         self.assertEquals(str(Guest.objects.first().pk), guest.data['id'])
@@ -253,7 +252,7 @@ class GuestIntegrationTest(TestCase):
         self.assertIs(Guest.objects.count(), 1)
         self.assertIsNone(guest.last_name)
 
-        client.patch('/guests/{}'.format(guest.pk), {'last_name': 'Ciccone'})
+        client.patch(reverse('guest-detail', args=[guest.pk]), {'last_name': 'Ciccone'})
         guest.refresh_from_db()
 
         self.assertEquals(guest.last_name, 'Ciccone')
@@ -273,7 +272,7 @@ class RoomIntegrationTest(TestCase):
         room = Room.objects.create(number='ABC101')
         self.assertIs(Room.objects.count(), 1)
 
-        room_fetched = client.get('/rooms/{}'.format(room.pk))
+        room_fetched = client.get(reverse('room-detail', args=[room.pk]))
 
         self.assertIsNotNone(room_fetched)
         self.assertEquals(str(Room.objects.first().pk), room_fetched.data['id'])
@@ -282,7 +281,7 @@ class RoomIntegrationTest(TestCase):
         client = APIClient()
 
         self.assertIs(Room.objects.count(), 0)
-        room = client.post('/rooms', {'number': 'ABC101'})
+        room = client.post(reverse('room-list'), {'number': 'ABC101'})
         self.assertIs(Room.objects.count(), 1)
 
         self.assertEquals(str(Room.objects.first().pk), room.data['id'])
@@ -294,7 +293,7 @@ class RoomIntegrationTest(TestCase):
         room = Room.objects.create(number='ABC101')
         self.assertIs(Room.objects.count(), 1)
 
-        client.patch('/rooms/{}'.format(room.pk), {'number': 'DEF101'})
+        client.patch(reverse('room-detail', args=[room.pk]), {'number': 'DEF101'})
         room.refresh_from_db()
 
         self.assertEquals(room.number, 'DEF101')
@@ -321,7 +320,7 @@ class ReservationIntegrationTest(TestCase):
         )
         self.assertIs(Reservation.objects.count(), 1)
 
-        reservation_fetched = client.get('/reservations/{}'.format(reservation.pk))
+        reservation_fetched = client.get(reverse('reservation-detail', args=[reservation.pk]))
 
         self.assertIsNotNone(reservation_fetched)
         self.assertEquals(str(Reservation.objects.first().pk), reservation_fetched.data['id'])
@@ -330,7 +329,7 @@ class ReservationIntegrationTest(TestCase):
         client = APIClient()
 
         self.assertIs(Reservation.objects.count(), 0)
-        reservation = client.post('/reservations', {
+        reservation = client.post(reverse('reservation-list'), {
             'in_date': '2018-01-01', 'out_date': '2018-01-02',
             'guest': Guest.objects.first().pk, 'room': Room.objects.first().pk
         })
@@ -348,7 +347,7 @@ class ReservationIntegrationTest(TestCase):
         )
         self.assertIs(Reservation.objects.count(), 1)
 
-        client.patch('/reservations/{}'.format(reservation.pk), {'out_date': '2018-01-03'})
+        client.patch(reverse('reservation-detail', args=[reservation.pk]), {'out_date': '2018-01-03'})
         reservation.refresh_from_db()
 
         self.assertEquals(reservation.out_date, datetime(year=2018, month=1, day=3).date())
@@ -376,7 +375,7 @@ class ReservationStatusThrottlingTestCase(TestCase):
 
         # When a request does not involve the status it is not throttled by the Reservation Status throttle
         for i in range(2):
-            response = client.patch('/reservations/{}'.format(reservation.pk), {'out_date': '2018-01-02'}, format='json')
+            response = client.patch(reverse('reservation-detail', args=[reservation.pk]), {'out_date': '2018-01-02'})
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_reservation_throttled_when_status_included(self):
@@ -384,9 +383,9 @@ class ReservationStatusThrottlingTestCase(TestCase):
         reservation = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
 
         # When a request does involve the status it is throttled with the Reservation Status policy
-        response = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
+        response = client.patch(reverse('reservation-detail', args=[reservation.pk]), {'status': 'pending'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        response = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
+        response = client.patch(reverse('reservation-detail', args=[reservation.pk]), {'status': 'pending'})
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_reservation_throttled_only_for_reservation_that_triggered_it(self):
@@ -398,15 +397,15 @@ class ReservationStatusThrottlingTestCase(TestCase):
         self.assertNotEqual(reservation_one.pk, reservation_two.pk)
 
         # Trigger a Reservation Status throttle for Reservation one
-        response = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        response = client.patch(reverse('reservation-detail', args=[reservation_one.pk]), {'status': 'pending'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        response = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        response = client.patch(reverse('reservation-detail', args=[reservation_one.pk]), {'status': 'pending'})
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Request for Reservation two is unaffected
-        response = client.patch('/reservations/{}'.format(reservation_two.pk), {'status': 'pending'})
+        response = client.patch(reverse('reservation-detail', args=[reservation_two.pk]), {'status': 'pending'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Request for Reservation one is still under throttling timeout
-        response = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        response = client.patch(reverse('reservation-detail', args=[reservation_one.pk]), {'status': 'pending'})
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

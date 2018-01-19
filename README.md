@@ -107,6 +107,11 @@ have additional throttling constraints, please see each resource and action's de
 
 ### Guests
 
+Each Guest action takes or responds with the following JSON attributes:
+
+`first_name`: The primary name of a Guest.
+`last_name`: The secondary name of a Guest.
+
 `GET /guests`
 
 `GET /guests/<id>`
@@ -120,6 +125,14 @@ have additional throttling constraints, please see each resource and action's de
 `DELETE /guest/<id>`
 
 ### Reservations
+
+`in_date`: The first date in which a Guest has reserved a room.
+`out_date`: The last date in which a Guest has reserved a room.
+`status`: The current state of the Reservation: `PENDING`, `CHECKED-IN`, `CHECKED-OUT`.
+`checkin_datetime`: The date and time which a Guest checked-in to their Reservation. Not settable.
+`checkout_datetime`: The date and time which a Guest checked-out of their Reservation. Not settable.
+`guest`: The primary key of the Guest which holds the reservation.
+`room`: The primary key of the Room which holds the reservation.
 
 `GET /reservations`
 
@@ -140,6 +153,10 @@ to a throttling rate of 1/minute.
 `DELETE /reservations/<id>`
 
 ### Rooms
+
+Each Room action takes or responsds with the following JSON attributes:
+
+`number`: A String representing the colloquial Room identifier.
 
 `GET /rooms`
 
@@ -184,12 +201,12 @@ There are many more things I would like to do to improve this service further. T
     1. This would allow a Reservation to be potentially restored later.
     2. This would persist interesting guest behavior for later analysis, such as insights into reducing cancellations.
 7. Materialized view refresh would perform even better as a Postgres trigger.
-8. More data modeling: e.g. Hotels, Employees, Location, RoomAvailability and others.
+8. More data modeling: e.g. Hotels, Employees, Location, RoomAvailability, RoomType, and many others.
     1. This would also help us potentially shard Reservations into more targeted segments.
     2. Hotel would have many Rooms, many Employees, and many Locations.
     3. This would help reduce the load of refreshing the CurrentAndUpcomingReservation materialized view as a concurrent refresh
        could select only Reservations which are updated for a given Hotel.
-    4. RoomAvailability should update transactionally with Reservation creation & update.
+    4. RoomAvailability should update transitionally with Reservation creation & update.
 9. Reservations
     1. Should have a one-to-many relationship with Rooms as a Reservation may be for 1 or more rooms.
     2. Expected check-in date and expected check-out date are currently immutable from the API to avoid complexity 
