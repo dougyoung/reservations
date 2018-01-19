@@ -49,6 +49,7 @@ Next create a database and a database user. Note you should have Postgres instal
 1. `psql`
 2. `CREATE DATABASE reservation_api;`
 3. `CREATE USER reservation_api_user;'
+4. `ALTER USER reservation_api_user CREATEDB;`
 
 Now you can migrate the database:
 
