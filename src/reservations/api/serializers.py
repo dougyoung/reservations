@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from enumchoicefield import EnumChoiceField
 from rest_framework import serializers
 from reservations.api.models import CurrentAndUpcomingReservation, Guest, Reservation, ReservationState, Room
@@ -49,7 +50,12 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
         instance.status = validated_data.get('status', instance.status)
         instance.guest = validated_data.get('guest', instance.guest)
         instance.room = validated_data.get('room', instance.room)
-        instance.save()
+
+        try:
+            instance.save()
+        except ValidationError as err:
+            raise serializers.ValidationError(err.message)
+
         return instance
 
 
