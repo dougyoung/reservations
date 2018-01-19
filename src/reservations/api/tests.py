@@ -85,23 +85,23 @@ class ReservationTestCase(TestCase):
         self.assertIsNotNone(reservation)
 
     def test_update(self):
-        Reservation.objects.create(in_date='2018-01-01',  out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
-        reservation = Reservation.objects.filter(in_date='2018-01-01',  out_date='2018-01-02').first()
+        Reservation.objects.create(in_date='2018-01-02',  out_date='2018-01-03', guest=Guest.objects.first(), room=Room.objects.first())
+        reservation = Reservation.objects.filter(in_date='2018-01-02',  out_date='2018-01-03').first()
         self.assertIsNotNone(reservation)
-        reservation.out_date = '2018-01-03'
+        reservation.out_date = '2018-01-04'
         reservation.save()
-        reservation = Reservation.objects.filter(out_date='2018-01-03').first()
+        reservation = Reservation.objects.filter(out_date='2018-01-04').first()
         self.assertIsNotNone(reservation)
 
     def test_delete(self):
-        reservation = Reservation.objects.create(in_date='2018-01-01',  out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
+        reservation = Reservation.objects.create(in_date='2018-01-04',  out_date='2018-01-05', guest=Guest.objects.first(), room=Room.objects.first())
         with self.assertRaises(NotImplementedError):
             reservation.delete()
-        reservation = Reservation.objects.filter(in_date='2018-01-01',  out_date='2018-01-02').first()
+        reservation = Reservation.objects.filter(in_date='2018-01-04',  out_date='2018-01-05').first()
         self.assertIsNotNone(reservation)
 
     def test_state_changes(self):
-        reservation = Reservation.objects.create(in_date='2018-01-01',  out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
+        reservation = Reservation.objects.create(in_date='2018-01-05',  out_date='2018-01-06', guest=Guest.objects.first(), room=Room.objects.first())
         # It is acceptable to change status to the same status
         reservation.status = ReservationState.pending
         reservation.save()
@@ -133,6 +133,19 @@ class ReservationTestCase(TestCase):
         with self.assertRaises(ValidationError):
             reservation.save()
 
+    def test_room_availability(self):
+        self.assertIs(Reservation.objects.count(), 0)
+        # Reservations with the same Room which have no overlap are valid.
+        Reservation.objects.create(in_date='2018-02-01',  out_date='2018-02-10', guest=Guest.objects.first(), room=Room.objects.first())
+        Reservation.objects.create(in_date='2018-02-10',  out_date='2018-02-20', guest=Guest.objects.first(), room=Room.objects.first())
+        self.assertIs(Reservation.objects.count(), 2)
+
+        # Reservations with the same Room which overlap a previous Reservation are invalid.
+        with self.assertRaises(ValidationError):
+            Reservation.objects.create(in_date='2018-02-01',  out_date='2018-02-02', guest=Guest.objects.first(), room=Room.objects.first())
+
+        with self.assertRaises(ValidationError):
+            Reservation.objects.create(in_date='2018-02-19',  out_date='2018-02-20', guest=Guest.objects.first(), room=Room.objects.first())
 
 # Current and Upcoming Reservation model tests
 class CurrentAndUpcomingReservationTestCase(TestCase):
@@ -160,11 +173,11 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
         self.assertIs(CurrentAndUpcomingReservation.objects.count(), 0)
         self.assertIsNone(upcoming_reservation)
 
-        # A Reservation whose arrival date was two days ago and whose departure date is today is current
+        # A Reservation whose arrival date was one day ago and whose departure date is today is current
         # and should refresh the materialized view.
-        reservation = Reservation.objects.create(in_date=today - timedelta(days=2), out_date=today, guest=guest, room=room)
+        reservation = Reservation.objects.create(in_date=today - timedelta(days=1), out_date=today, guest=guest, room=room)
         upcoming_reservation = CurrentAndUpcomingReservation.objects.filter(
-            in_date=today - timedelta(days=2),
+            in_date=today - timedelta(days=1),
             out_date=today,
             first_name=guest.first_name,
             last_name=guest.last_name,
@@ -405,7 +418,7 @@ class ReservationStatusThrottlingTestCase(TestCase):
 
     def test_reservation_throttled_when_status_included(self):
         client = APIClient()
-        reservation = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
+        reservation = Reservation.objects.create(in_date='2018-01-02', out_date='2018-01-03', guest=Guest.objects.first(), room=Room.objects.first())
 
         # When a request does involve the status it is throttled with the Reservation Status policy
         response = client.patch(reverse('reservation-detail', args=[reservation.pk]), {'status': 'pending'})
@@ -415,8 +428,8 @@ class ReservationStatusThrottlingTestCase(TestCase):
 
     def test_reservation_throttled_only_for_reservation_that_triggered_it(self):
         client = APIClient()
-        reservation_one = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
-        reservation_two = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.all()[1])
+        reservation_one = Reservation.objects.create(in_date='2018-01-03', out_date='2018-01-04', guest=Guest.objects.first(), room=Room.objects.first())
+        reservation_two = Reservation.objects.create(in_date='2018-01-04', out_date='2018-01-05', guest=Guest.objects.first(), room=Room.objects.all()[1])
 
         # Ensure Reservations are different
         self.assertNotEqual(reservation_one.pk, reservation_two.pk)

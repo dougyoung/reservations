@@ -2,7 +2,7 @@ import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import signals
+from django.db.models import Q, signals
 from django.dispatch import receiver
 from django.utils import timezone
 from django_pgviews import view as pg
@@ -71,6 +71,18 @@ class Reservation(IndestructableModel):
 
         # Save the resource with transactional atomicity.
         with transaction.atomic():
+            # Find Reservations for this room between the dates given, not includeing this Reservation.
+            conflicting_reservations = Reservation.objects.exclude(id=self.pk).filter(room=self.room).filter(
+                (Q(in_date__lt=self.out_date) & Q(in_date__gte=self.in_date)) |
+                (Q(in_date__lte=self.in_date) & Q(out_date__gte=self.out_date)) |
+                (Q(out_date__gt=self.in_date) & Q(in_date__lte=self.out_date))
+            )
+
+            if len(conflicting_reservations) > 0:
+                raise ValidationError("Room has already been reserved within {} to {}".format(
+                    self.in_date, self.out_date
+                ))
+
             # Here we would also update Room availability for a given Hotel.
             return super(Reservation, self).save(force_insert, force_update, *args, **kwargs)
 
