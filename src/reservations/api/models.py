@@ -54,15 +54,15 @@ class Reservation(IndestructableModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    in_date = models.DateField(editable=False)
-    out_date = models.DateField(editable=False)
+    in_date = models.DateField(db_index=True, editable=False)
+    out_date = models.DateField(db_index=True, editable=False)
     checkin_datetime = models.DateTimeField(null=True)
     checkout_datetime = models.DateTimeField(null=True)
-    status = EnumChoiceField(enum_class=ReservationState, default=ReservationState.pending, null=False)
+    status = EnumChoiceField(db_index=True, enum_class=ReservationState, default=ReservationState.pending, null=False)
     # Deletion of Guests is not currently supported.
-    guest = models.ForeignKey(Guest, on_delete=models.PROTECT)
+    guest = models.ForeignKey(Guest, db_index=True, on_delete=models.PROTECT)
     # Deletion of Rooms is not currently supported.
-    room = models.ForeignKey(Room, on_delete=models.PROTECT)
+    room = models.ForeignKey(Room, db_index=True, on_delete=models.PROTECT)
     # Tracker to keep track of status changes
     tracker = FieldTracker()
 
