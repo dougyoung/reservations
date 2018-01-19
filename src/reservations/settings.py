@@ -25,8 +25,13 @@ DEBUG = True if os.getenv('DEBUG') == 'true' else False
 
 ALLOWED_HOSTS = ['localhost']
 
-
 # Application definition
+
+CACHEOPS_REDIS = {
+    'host': os.getenv('REDIS_HOST', 'localhost'),
+    'port': os.getenv('REDIS_PORT', 6379),
+    'db': 1
+}
 
 INSTALLED_APPS = [
     'django.contrib.admin',

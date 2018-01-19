@@ -8,6 +8,7 @@ services:
       - "8000:8000"
     depends_on:
       - postgres
+      - redis
     volumes:
       - .:/reservations
     command: python3 manage.py runserver 0.0.0.0:8000
@@ -17,7 +18,12 @@ services:
       DATABASE_USER: postgres
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
+      REDIS_HOST: redis
 
   postgres:
     restart: always
     image: postgres:latest
+
+  redis:
+    restart: always
+    image: redis:latest

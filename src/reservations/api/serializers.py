@@ -50,12 +50,11 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
         return instance
 
     def validate(self, data):
-        """
-        Check that the arrival date is on or before the departure date
-        """
-        if not 'in_date' in data or not 'out_date' in data: return data
-        if data['in_date'] > data['out_date']:
-            raise serializers.ValidationError("Arrival date must be before departure date")
+        # Check that the arrival date is on or before the departure date
+        if 'in_date' in data and 'out_date' in data:
+            if data['in_date'] > data['out_date']:
+                raise serializers.ValidationError("Arrival date must be before departure date")
+
         return data
 
 
