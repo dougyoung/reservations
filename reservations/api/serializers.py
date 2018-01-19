@@ -67,6 +67,6 @@ class CurrentAndUpcomingReservationSerializer(serializers.HyperlinkedModelSerial
         fields = (
             'url',
             'first_name', 'last_name',
-            'in_date', 'out_date', 'number',
+            'in_date', 'out_date', 'room_number',
             'checkin_datetime', 'checkout_datetime', 'status'
         )

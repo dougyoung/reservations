@@ -1,10 +1,10 @@
-import time
+from datetime import datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
-from reservations.api.models import Guest, Room, Reservation, ReservationState
+from reservations.api.models import CurrentAndUpcomingReservation, Guest, Room, Reservation, ReservationState
 from reservations.api.utils.throttles import ReservationStatusRateThrottle
 from reservations.api.views import ReservationViewSet
 
@@ -125,6 +125,91 @@ class ReservationTestCase(TestCase):
         reservation.status = ReservationState.checked_in
         with self.assertRaises(ValidationError):
             reservation.save()
+
+
+# Current and Upcoming Reservation model tests
+class CurrentAndUpcomingReservationTestCase(TestCase):
+    def setUp(self):
+        Guest.objects.create(first_name='Michelangelo')
+        Room.objects.create(number='ABC101')
+
+    def test_creation_of_reservation(self):
+        today = datetime.utcnow().date()
+        guest = Guest.objects.first()
+        room = Room.objects.first()
+
+        # A reservation whose arrival date way 2 days ago and whose departure date was yesterday is not current
+        # and should not refresh the materialized view.
+        reservation = Reservation.objects.create(in_date=today - timedelta(days=2), out_date=today - timedelta(days=1), guest=guest, room=room)
+        upcoming_reservation = CurrentAndUpcomingReservation.objects.filter(
+            in_date=today - timedelta(days=2),
+            out_date=today - timedelta(days=1),
+            first_name=guest.first_name,
+            last_name=guest.last_name,
+            room_number=room.number,
+            status=reservation.status
+        ).first()
+
+        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 0)
+        self.assertIsNone(upcoming_reservation)
+
+        # A Reservation whose arrival date was two days ago and whose departure date is today is current
+        # and should refresh the materialized view.
+        reservation = Reservation.objects.create(in_date=today - timedelta(days=2), out_date=today, guest=guest, room=room)
+        upcoming_reservation = CurrentAndUpcomingReservation.objects.filter(
+            in_date=today - timedelta(days=2),
+            out_date=today,
+            first_name=guest.first_name,
+            last_name=guest.last_name,
+            room_number=room.number,
+            status=reservation.status
+        ).first()
+
+        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 1)
+        self.assertTrue(upcoming_reservation.reservation_id, reservation.pk)
+
+        # A Reservation whose arrival date is today is current and should refresh the materialized view.
+        reservation = Reservation.objects.create(in_date=today, out_date=today + timedelta(1), guest=guest, room=room)
+        upcoming_reservation = CurrentAndUpcomingReservation.objects.filter(
+            in_date=today,
+            out_date=today + timedelta(days=1),
+            first_name=guest.first_name,
+            last_name=guest.last_name,
+            room_number=room.number,
+            status=reservation.status
+        ).first()
+
+        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 2)
+        self.assertTrue(upcoming_reservation.reservation_id, reservation.pk)
+
+        # A Reservation that is upcoming in 2 days should refresh the materialized view.
+        reservation = Reservation.objects.create(in_date=today + timedelta(days=2), out_date=today + timedelta(3), guest=guest, room=room)
+        upcoming_reservation = CurrentAndUpcomingReservation.objects.filter(
+            in_date=today + timedelta(days=2),
+            out_date=today + timedelta(days=3),
+            first_name=guest.first_name,
+            last_name=guest.last_name,
+            room_number=room.number,
+            status=reservation.status
+        ).first()
+
+        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 3)
+        self.assertTrue(upcoming_reservation.reservation_id, reservation.pk)
+
+        # A Reservation that is upcoming in 3 days should not refresh the materialized view.
+        reservation = Reservation.objects.create(in_date=today + timedelta(days=3), out_date=today + timedelta(4), guest=guest, room=room)
+        upcoming_reservation = CurrentAndUpcomingReservation.objects.filter(
+            in_date=today + timedelta(days=3),
+            out_date=today + timedelta(days=4),
+            first_name=guest.first_name,
+            last_name=guest.last_name,
+            room_number=room.number,
+            status=reservation.status
+        ).first()
+
+        self.assertEquals(CurrentAndUpcomingReservation.objects.count(), 3)
+        self.assertIsNone(upcoming_reservation)
+
 
 #####################
 # Integration tests #
