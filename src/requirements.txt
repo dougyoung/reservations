@@ -1,6 +1,8 @@
 django==2.0.1
+django_extensions==1.9.9
 django-model-utils==3.1.1
 django-pgviews==0.5.3
 djangorestframework==3.7.7
+psycopg2==2.7.3.2
 
 git+git://github.com/takeflight/django-enumchoicefield.git

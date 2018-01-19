@@ -20,10 +20,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'hvm&5r4j13z&5jn)bs)uvlrmr)y5_@0g8dm+%3+(wkzd-0@n_q'
+SECRET_KEY = os.getenv('SECRET_KEY', 'hvm&5r4j13z&5jn)bs)uvlrmr)y5_@0g8dm+%3+(wkzd-0@n_q')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True if os.getenv('DEBUG') == 'true' else False
 
 ALLOWED_HOSTS = []
 
@@ -94,12 +94,12 @@ WSGI_APPLICATION = 'reservations.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'reservations',
-        'USER': 'reservationsuser',
-        'PASSWORD': 'r2MTYsehJExq2kFAEmUvQhA6PFQ+xLfQTCiJiEDJpDcAbcdQADUrb9hmNoMUX(Hy',
-        'HOST': 'localhost',
-        'PORT': ''
+        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql_psycopg2'),
+        'NAME': os.getenv('DATABASE_NAME', 'db'),
+        'USER': os.getenv('DATABASE_USER', 'user'),
+        # 'PASSWORD': os.getenv('DATABASE_PASSWORD', 'password'),
+        'HOST': os.getenv('DATABASE_HOST', 'db'),
+        'PORT': os.getenv('DATABASE_PORT', 5432)
     }
 }
 
