@@ -25,7 +25,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'hvm&5r4j13z&5jn)bs)uvlrmr)y5_@0g8dm+%3+(wk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if os.getenv('DEBUG') == 'true' else False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost']
 
 
 # Application definition
@@ -95,14 +95,12 @@ WSGI_APPLICATION = 'reservations.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql_psycopg2'),
-        'NAME': os.getenv('DATABASE_NAME', 'db'),
-        'USER': os.getenv('DATABASE_USER', 'user'),
-        # 'PASSWORD': os.getenv('DATABASE_PASSWORD', 'password'),
-        'HOST': os.getenv('DATABASE_HOST', 'db'),
+        'NAME': os.getenv('DATABASE_NAME', 'reservation_api'),
+        'USER': os.getenv('DATABASE_USER', 'reservation_api_user'),
+        'HOST': os.getenv('DATABASE_HOST', 'localhost'),
         'PORT': os.getenv('DATABASE_PORT', 5432)
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators

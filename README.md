@@ -29,17 +29,37 @@ docker-compose run api python3 manage.py sync_pgviews
 
 ### Local
 
-To run locally you will require Python 3. This has been tested with Python 3.6.2.
+To run locally you will require Python 3. This has been tested with Python 3.6.2. Also have [virtualenv](https://virtualenv.pypa.io/en/stable/installation)
+installed, as well as Postgres 9.6.3.
 
 1. Change directory to `src`: `cd src`
-2. Activate your virtualenv: `source env/bin/activate`
-3. Install pip dependencies: `pip3 install -r requirements.txt`
+2. Make virtualenv folder: `virtualenv .env`
+3. Activate your virtualenv: `source .env/bin/activate`
+4. Install pip dependencies: `pip3 install -r requirements.txt`
 
 _Simple Reservation Service_ utilizes materialized views to denormalize Reservation, Guest, and Room data into a single
 cached table. In order to generate these views please run:
 
 ```bash
 python3 manage.py sync_pgviews
+```
+
+Next create a database and a database user. Note you should have Postgres installed locally 
+
+1. `psql`
+2. `CREATE DATABASE reservation_api;`
+3. `CREATE USER reservation_api_user;'
+
+Now you can migrate the database:
+
+```
+python3 manage.py migrate
+```
+
+Finally, run the server:
+
+```
+python3 manage.py runserver
 ```
 
 ## Choice of database
@@ -174,6 +194,6 @@ There are many more things I would like to do to improve this service further. T
 10. CurrentAndUpcomingReservations
     1. Should be refreshed by a cron job at least once per day, per Hotel Location.
     2. Depending on the business use case this should possibly be two different resources, CurrentReservations and
-       UpcomingReservations, as each of these resources may serve a seperate business function.
+       UpcomingReservations, as each of these resources may serve a separate business function.
 11. Models/Serializers/Views should be split up for easier maintenance.
 12. Database access should be locked down more.
