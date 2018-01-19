@@ -6,7 +6,9 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from reservations.api.models import CurrentAndUpcomingReservation, Guest, Room, Reservation, ReservationState
 from reservations.api.utils.throttles import ReservationStatusRateThrottle
-from reservations.api.views import ReservationViewSet
+from reservations.api.views import GuestViewSet, ReservationViewSet, RoomViewSet
+
+# TODO: Use reverse
 
 ###############
 # Model tests #
@@ -150,7 +152,7 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
             status=reservation.status
         ).first()
 
-        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 0)
+        self.assertIs(CurrentAndUpcomingReservation.objects.count(), 0)
         self.assertIsNone(upcoming_reservation)
 
         # A Reservation whose arrival date was two days ago and whose departure date is today is current
@@ -165,7 +167,7 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
             status=reservation.status
         ).first()
 
-        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 1)
+        self.assertIs(CurrentAndUpcomingReservation.objects.count(), 1)
         self.assertTrue(upcoming_reservation.reservation_id, reservation.pk)
 
         # A Reservation whose arrival date is today is current and should refresh the materialized view.
@@ -179,7 +181,7 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
             status=reservation.status
         ).first()
 
-        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 2)
+        self.assertIs(CurrentAndUpcomingReservation.objects.count(), 2)
         self.assertTrue(upcoming_reservation.reservation_id, reservation.pk)
 
         # A Reservation that is upcoming in 2 days should refresh the materialized view.
@@ -193,7 +195,7 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
             status=reservation.status
         ).first()
 
-        self.assertEqual(CurrentAndUpcomingReservation.objects.count(), 3)
+        self.assertIs(CurrentAndUpcomingReservation.objects.count(), 3)
         self.assertTrue(upcoming_reservation.reservation_id, reservation.pk)
 
         # A Reservation that is upcoming in 3 days should not refresh the materialized view.
@@ -207,7 +209,7 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
             status=reservation.status
         ).first()
 
-        self.assertEquals(CurrentAndUpcomingReservation.objects.count(), 3)
+        self.assertIs(CurrentAndUpcomingReservation.objects.count(), 3)
         self.assertIsNone(upcoming_reservation)
 
 
@@ -215,12 +217,147 @@ class CurrentAndUpcomingReservationTestCase(TestCase):
 # Integration tests #
 #####################
 
+class GuestIntegrationTest(TestCase):
+    """
+    Test Guest resource actions
+    """
 
-# TODO: Use reverse
+    GuestViewSet.throttle_classes = ()
+
+    def test_get_guest(self):
+        client = APIClient()
+
+        self.assertIs(Guest.objects.count(), 0)
+        guest = Guest.objects.create(first_name='Prince')
+        self.assertIs(Guest.objects.count(), 1)
+
+        guest_fetched = client.get('/guests/{}'.format(guest.pk))
+
+        self.assertIsNotNone(guest_fetched)
+        self.assertEquals(str(Guest.objects.first().pk), guest_fetched.data['id'])
+
+    def test_create_guest(self):
+        client = APIClient()
+
+        self.assertIs(Guest.objects.count(), 0)
+        guest = client.post('/guests', {'first_name': 'Homer'})
+        self.assertIs(Guest.objects.count(), 1)
+
+        self.assertEquals(str(Guest.objects.first().pk), guest.data['id'])
+
+    def test_update_guest(self):
+        client = APIClient()
+
+        self.assertIs(Guest.objects.count(), 0)
+        guest = Guest.objects.create(first_name='Madonna')
+        self.assertIs(Guest.objects.count(), 1)
+        self.assertIsNone(guest.last_name)
+
+        client.patch('/guests/{}'.format(guest.pk), {'last_name': 'Ciccone'})
+        guest.refresh_from_db()
+
+        self.assertEquals(guest.last_name, 'Ciccone')
+
+
+class RoomIntegrationTest(TestCase):
+    """
+    Test Room resource actions
+    """
+
+    RoomViewSet.throttle_classes = ()
+
+    def test_get_room(self):
+        client = APIClient()
+
+        self.assertIs(Room.objects.count(), 0)
+        room = Room.objects.create(number='ABC101')
+        self.assertIs(Room.objects.count(), 1)
+
+        room_fetched = client.get('/rooms/{}'.format(room.pk))
+
+        self.assertIsNotNone(room_fetched)
+        self.assertEquals(str(Room.objects.first().pk), room_fetched.data['id'])
+
+    def test_create_guest(self):
+        client = APIClient()
+
+        self.assertIs(Room.objects.count(), 0)
+        room = client.post('/rooms', {'number': 'ABC101'})
+        self.assertIs(Room.objects.count(), 1)
+
+        self.assertEquals(str(Room.objects.first().pk), room.data['id'])
+
+    def test_update_guest(self):
+        client = APIClient()
+
+        self.assertIs(Room.objects.count(), 0)
+        room = Room.objects.create(number='ABC101')
+        self.assertIs(Room.objects.count(), 1)
+
+        client.patch('/rooms/{}'.format(room.pk), {'number': 'DEF101'})
+        room.refresh_from_db()
+
+        self.assertEquals(room.number, 'DEF101')
+
+
+class ReservationIntegrationTest(TestCase):
+    """
+    Test Reservation resource actions
+    """
+
+    ReservationViewSet.throttle_classes = ()
+
+    def setUp(self):
+        Guest.objects.create(first_name='Cleopatra')
+        Room.objects.create(number='ABC101')
+
+    def test_get_reservation(self):
+        client = APIClient()
+
+        self.assertIs(Reservation.objects.count(), 0)
+        reservation = Reservation.objects.create(
+            in_date='2018-01-01', out_date='2018-01-02',
+            guest=Guest.objects.first(), room=Room.objects.first()
+        )
+        self.assertIs(Reservation.objects.count(), 1)
+
+        reservation_fetched = client.get('/reservations/{}'.format(reservation.pk))
+
+        self.assertIsNotNone(reservation_fetched)
+        self.assertEquals(str(Reservation.objects.first().pk), reservation_fetched.data['id'])
+
+    def test_create_reservation(self):
+        client = APIClient()
+
+        self.assertIs(Reservation.objects.count(), 0)
+        reservation = client.post('/reservations', {
+            'in_date': '2018-01-01', 'out_date': '2018-01-02',
+            'guest': Guest.objects.first().pk, 'room': Room.objects.first().pk
+        })
+        self.assertIs(Reservation.objects.count(), 1)
+
+        self.assertEquals(str(Reservation.objects.first().pk), reservation.data['id'])
+
+    def test_update_guest(self):
+        client = APIClient()
+
+        self.assertIs(Reservation.objects.count(), 0)
+        reservation = Reservation.objects.create(
+            in_date='2018-01-01', out_date='2018-01-02',
+            guest=Guest.objects.first(), room=Room.objects.first()
+        )
+        self.assertIs(Reservation.objects.count(), 1)
+
+        client.patch('/reservations/{}'.format(reservation.pk), {'out_date': '2018-01-03'})
+        reservation.refresh_from_db()
+
+        self.assertEquals(reservation.out_date, datetime(year=2018, month=1, day=3).date())
+
+
 class ReservationStatusThrottlingTestCase(TestCase):
     """
     Test that Reservation requests involving status updates trigger the special 1/min throttle.
-    While non-completely-determinstic tests should generally be avoided
+    While non-completely-deterministic tests should generally be avoided
     the 1/min rate should almost certainly be hit within two lines of code.
     If the 1/min rate is lowered this test may become too in-deterministic to be viable.
     """
@@ -247,10 +384,10 @@ class ReservationStatusThrottlingTestCase(TestCase):
         reservation = Reservation.objects.create(in_date='2018-01-01', out_date='2018-01-02', guest=Guest.objects.first(), room=Room.objects.first())
 
         # When a request does involve the status it is throttled with the Reservation Status policy
-        request = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
-        self.assertEqual(request.status_code, status.HTTP_200_OK)
-        request = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
-        self.assertEqual(request.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        response = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = client.patch('/reservations/{}'.format(reservation.pk), {'status': 'pending'})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
     def test_reservation_throttled_only_for_reservation_that_triggered_it(self):
         client = APIClient()
@@ -261,15 +398,15 @@ class ReservationStatusThrottlingTestCase(TestCase):
         self.assertNotEqual(reservation_one.pk, reservation_two.pk)
 
         # Trigger a Reservation Status throttle for Reservation one
-        request = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
-        self.assertEqual(request.status_code, status.HTTP_200_OK)
-        request = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
-        self.assertEqual(request.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        response = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Request for Reservation two is unaffected
-        request = client.patch('/reservations/{}'.format(reservation_two.pk), {'status': 'pending'})
-        self.assertEqual(request.status_code, status.HTTP_200_OK)
+        response = client.patch('/reservations/{}'.format(reservation_two.pk), {'status': 'pending'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Request for Reservation one is still under throttling timeout
-        request = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
-        self.assertEqual(request.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        response = client.patch('/reservations/{}'.format(reservation_one.pk), {'status': 'pending'})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

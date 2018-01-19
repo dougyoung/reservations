@@ -1,7 +1,8 @@
 # Simple Reservation Service
 
 This is a simple Reservation application to provide service around Reservations for hotels and other establishments that
-allow booking of rooms.
+allow booking of rooms. This repository represents a first iteration of such a service, as many more considerations
+need to be made to bring it to production-readiness.
 
 ## Running
 
@@ -93,7 +94,7 @@ docker-compose run api python3 manage.py test
 To run tests locally perform this command:
 
 ```bash
-
+python3 manage.py test
 ```
 
 ## Throttling
@@ -183,11 +184,12 @@ There are many more things I would like to do to improve this service further. T
     1. This would allow a Reservation to be potentially restored later.
     2. This would persist interesting guest behavior for later analysis, such as insights into reducing cancellations.
 7. Materialized view refresh would perform even better as a Postgres trigger.
-8. More data modeling: e.g. Hotels, Employees, Location, and others.
+8. More data modeling: e.g. Hotels, Employees, Location, RoomAvailability and others.
     1. This would also help us potentially shard Reservations into more targeted segments.
     2. Hotel would have many Rooms, many Employees, and many Locations.
     3. This would help reduce the load of refreshing the CurrentAndUpcomingReservation materialized view as a concurrent refresh
        could select only Reservations which are updated for a given Hotel.
+    4. RoomAvailability should update transactionally with Reservation creation & update.
 9. Reservations
     1. Should have a one-to-many relationship with Rooms as a Reservation may be for 1 or more rooms.
     2. Expected check-in date and expected check-out date are currently immutable from the API to avoid complexity 

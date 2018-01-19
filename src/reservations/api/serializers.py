@@ -6,13 +6,13 @@ from reservations.api.models import CurrentAndUpcomingReservation, Guest, Reserv
 class GuestSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Guest
-        fields = ('url', 'first_name', 'last_name',)
+        fields = ('id', 'url', 'first_name', 'last_name',)
 
 
 class RoomSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Room
-        fields = ('url', 'number',)
+        fields = ('id', 'url', 'number',)
 
 
 class ReservationSerializer(serializers.HyperlinkedModelSerializer):
@@ -35,15 +35,7 @@ class ReservationSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Reservation
-        fields = ('url', 'in_date', 'out_date', 'status', 'checkin_datetime', 'checkout_datetime', 'guest', 'room')
-
-    def create(self, validated_data):
-        """
-        Create and return a new `Reservation` instance, given the validated data.
-        :param validated_data:
-        :return: Reservation resource
-        """
-        return Reservation.objects.create(**validated_data);
+        fields = ('id', 'url', 'in_date', 'out_date', 'status', 'checkin_datetime', 'checkout_datetime', 'guest', 'room')
 
     def update(self, instance, validated_data):
         """
@@ -65,7 +57,7 @@ class CurrentAndUpcomingReservationSerializer(serializers.HyperlinkedModelSerial
     class Meta:
         model = CurrentAndUpcomingReservation
         fields = (
-            'url',
+            'id', 'url',
             'first_name', 'last_name',
             'in_date', 'out_date', 'room_number',
             'checkin_datetime', 'checkout_datetime', 'status'
